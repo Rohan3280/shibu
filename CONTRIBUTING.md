@@ -98,15 +98,22 @@ the platform's default source encoding.
 
 ## Screenshots
 
-The README images are rendered from the real widget tree rather than captured
-by hand, so they can be regenerated after a UI change:
+`docs/screenshots/*.png` are captured from a real device:
 
 ```bash
-flutter test --update-goldens --tags screenshots
+adb shell am start -n com.shibu.app/.MainActivity
+adb exec-out screencap -p > docs/screenshots/01-today.png
 ```
 
-They depend on the host's fonts, which is why they are tagged out of the normal
-test run.
+`docs/screenshots/rendered/` holds the same screens drawn straight from the
+widget tree, for when no phone is to hand:
+
+```bash
+flutter test --update-goldens test/screenshots.dart
+```
+
+That file is named without the `_test` suffix so a plain `flutter test` skips
+it — its output depends on which fonts the host has installed.
 
 ## Reporting a bug
 

@@ -79,7 +79,7 @@ void main() {
 
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('../docs/screenshots/$name.png'),
+      matchesGoldenFile('../docs/screenshots/rendered/$name.png'),
     );
     debugPrint('[shot] wrote $name.png');
   }

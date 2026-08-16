@@ -38,6 +38,18 @@ fighting it:
      駅前・in front of station
 ```
 
+Setting up takes three steps, and both surfaces are optional:
+
+<div align="center">
+<img src="docs/screenshots/05-onboarding.png" width="24%" alt="Choosing JLPT levels">
+<img src="docs/screenshots/06-rhythm.png" width="24%" alt="Choosing how often the kanji changes">
+<img src="docs/screenshots/07-activate.png" width="24%" alt="Turning on the wallpaper and widget">
+<img src="docs/screenshots/08-wallpaper.png" width="24%" alt="The live wallpaper rendering a card">
+</div>
+
+The last image is the live wallpaper itself, drawn by the native renderer —
+that is what you see behind your lock screen.
+
 ## Features
 
 - **419 kanji** across JLPT N5, N4 and N3, each with its reading, meaning, and
@@ -66,7 +78,8 @@ Two APK flavours are published:
 | `shibu-<version>-arm64.apk` | Any phone from the last several years. Smallest download. |
 | `shibu-<version>-universal.apk` | You are not sure, or you are installing on an emulator. Works everywhere. |
 
-Requires **Android 7.0 (API 24)** or newer.
+Requires **Android 7.0 (API 24)** or newer. 1.0.0 was verified on a Motorola
+Edge 50 Fusion running Android 16.
 
 ## How it reaches the lock screen
 
@@ -180,9 +193,13 @@ goldens produced on the JVM by `tool/verify_deck_order/`.
 ### Tests
 
 ```bash
-flutter test                                    # unit and widget tests
-flutter test --update-goldens --tags screenshots  # regenerate README images
+flutter test                                          # unit and widget tests
+flutter test --update-goldens test/screenshots.dart   # re-render docs/screenshots/rendered/
 ```
+
+The images at the top of this README are captured from a real device. The
+renderer above is a fallback that draws the same screens straight from the
+widget tree, for when no phone is to hand.
 
 ## Privacy
 
