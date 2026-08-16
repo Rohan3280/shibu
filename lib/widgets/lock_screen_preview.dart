@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../models/background_presets.dart';
 import '../models/kanji.dart';
 import '../models/settings.dart';
 import 'kanji_card.dart';
@@ -86,23 +87,28 @@ class _Background extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = settings.wallpaperPath;
-    final hasImage = path != null && File(path).existsSync();
+    final useImage =
+        settings.backgroundKind == BackgroundKind.image &&
+        path != null &&
+        File(path).existsSync();
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (hasImage)
+        if (useImage)
           Image.file(
             File(path),
             fit: BoxFit.cover,
-            // The file is overwritten in place when the user picks a new photo,
-            // so the decoded image must not be served from cache.
+            // The file is overwritten in place when the user picks a new one,
+            // so the decoded image must not be served from cache. Flutter
+            // animates GIF and animated WebP here on its own.
             key: ValueKey(File(path).lastModifiedSync()),
+            gaplessPlayback: true,
             errorBuilder: (_, _, _) =>
-                ColoredBox(color: settings.wallpaperColor),
+                _PresetBackdrop(presetId: settings.backgroundPreset),
           )
         else
-          _DefaultBackdrop(color: settings.wallpaperColor),
+          _PresetBackdrop(presetId: settings.backgroundPreset),
         if (settings.wallpaperDim > 0)
           ColoredBox(
             color: Colors.black.withValues(alpha: settings.wallpaperDim),
@@ -112,24 +118,16 @@ class _Background extends StatelessWidget {
   }
 }
 
-/// Stand-in backdrop shown before the user picks a photo.
-class _DefaultBackdrop extends StatelessWidget {
-  const _DefaultBackdrop({required this.color});
+/// One of the built-in gradients, drawn the same way the native engine does.
+class _PresetBackdrop extends StatelessWidget {
+  const _PresetBackdrop({required this.presetId});
 
-  final Color color;
+  final String presetId;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color.lerp(color, Colors.white, 0.16)!,
-          color,
-          Color.lerp(color, Colors.black, 0.35)!,
-        ],
-      ),
+      gradient: BackgroundPresets.byId(presetId).gradient,
     ),
   );
 }

@@ -2,6 +2,7 @@ package com.shibu.app.wallpaper
 
 import android.app.WallpaperManager
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -9,10 +10,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.drawable.AnimatedImageDrawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
@@ -26,16 +31,16 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * A live wallpaper that paints the current kanji card over the user's chosen
- * photo.
+ * A live wallpaper that paints the current kanji card over the chosen backdrop.
  *
  * Android phones have no public API for third-party lock screen widgets, so the
  * wallpaper is how Shibu reaches the lock screen at all: the system draws the
  * same wallpaper surface behind both the lock screen and the home screen, which
  * means one implementation covers both.
  *
- * Drawing is entirely on demand. The engine repaints when it becomes visible,
- * when the surface changes size, and when the card rotates — never on a timer.
+ * A still backdrop is drawn on demand — when the engine becomes visible, when
+ * the surface resizes, and when the card rotates. An animated backdrop adds a
+ * repeating redraw, but only while the wallpaper is actually visible.
  */
 class ShibuWallpaperService : WallpaperService() {
 
@@ -44,20 +49,21 @@ class ShibuWallpaperService : WallpaperService() {
     private inner class CardEngine : Engine() {
 
         private var visible = false
-        private var background: Bitmap? = null
-        private var backgroundToken: String? = null
+        private var backdrop: Backdrop? = null
+        private var backdropToken: String? = null
         private var surfaceWidth = 0
         private var surfaceHeight = 0
 
         private val dimPaint = Paint()
-        private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        private val handler = Handler(Looper.getMainLooper())
+        private val animationTick = Runnable { drawFrame() }
 
         /** Fires when the card rotates or the user changes a setting. */
         private val cardChanged = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                // A settings change can swap the background image too.
+                // A settings change can swap the backdrop entirely.
                 if (intent.getBooleanExtra(EXTRA_RELOAD_BACKGROUND, false)) {
-                    releaseBackground()
+                    releaseBackdrop()
                 }
                 drawFrame()
             }
@@ -77,13 +83,18 @@ class ShibuWallpaperService : WallpaperService() {
 
         override fun onDestroy() {
             runCatching { unregisterReceiver(cardChanged) }
-            releaseBackground()
+            handler.removeCallbacks(animationTick)
+            releaseBackdrop()
             super.onDestroy()
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
             this.visible = visible
-            if (!visible) return
+            if (!visible) {
+                // Nothing on screen: stop burning battery on animation frames.
+                handler.removeCallbacks(animationTick)
+                return
+            }
 
             // Becoming visible means the lock screen or home screen just came
             // up, which is exactly the "show me a new one" moment. If nothing
@@ -100,18 +111,20 @@ class ShibuWallpaperService : WallpaperService() {
             if (width != surfaceWidth || height != surfaceHeight) {
                 surfaceWidth = width
                 surfaceHeight = height
-                releaseBackground()
+                releaseBackdrop()
             }
             drawFrame()
         }
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             visible = false
-            releaseBackground()
+            handler.removeCallbacks(animationTick)
+            releaseBackdrop()
             super.onSurfaceDestroyed(holder)
         }
 
         private fun drawFrame() {
+            handler.removeCallbacks(animationTick)
             if (!visible || surfaceWidth == 0 || surfaceHeight == 0) return
 
             val holder = surfaceHolder
@@ -126,13 +139,20 @@ class ShibuWallpaperService : WallpaperService() {
                     runCatching { holder.unlockCanvasAndPost(canvas) }
                 }
             }
+
+            // Schedule the next frame only for a moving backdrop. Capping at
+            // FRAME_INTERVAL_MS rather than chasing the source frame rate keeps
+            // a 60fps GIF from pinning the CPU behind the lock screen.
+            if (visible && backdrop?.isAnimated == true) {
+                handler.postDelayed(animationTick, FRAME_INTERVAL_MS)
+            }
         }
 
         private fun render(canvas: Canvas) {
             val context = applicationContext
             val prefs = Prefs(context)
 
-            drawBackground(canvas, prefs)
+            drawBackdrop(canvas, prefs)
 
             val kanji = KanjiStore.current(context) ?: return
             val style = CardStyle.forWallpaper(context)
@@ -153,12 +173,12 @@ class ShibuWallpaperService : WallpaperService() {
             card.draw(canvas, left, top.coerceIn(0f, (surfaceHeight - card.height).toFloat()))
         }
 
-        private fun drawBackground(canvas: Canvas, prefs: Prefs) {
-            val bitmap = obtainBackground(prefs)
-            if (bitmap == null) {
+        private fun drawBackdrop(canvas: Canvas, prefs: Prefs) {
+            val current = obtainBackdrop(prefs)
+            if (current == null) {
                 canvas.drawColor(prefs.wallpaperColor)
             } else {
-                canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
+                current.draw(canvas, surfaceWidth, surfaceHeight)
             }
 
             val dim = prefs.wallpaperDim
@@ -172,26 +192,77 @@ class ShibuWallpaperService : WallpaperService() {
         }
 
         /**
-         * Loads and centre-crops the chosen photo to the surface, caching the
-         * result. The token guards against silently reusing a stale bitmap
-         * after the user picks a different image.
+         * Builds the backdrop for the current settings, caching it. The token
+         * guards against silently reusing a stale one after the user picks a
+         * different image or preset.
          */
-        private fun obtainBackground(prefs: Prefs): Bitmap? {
-            val path = prefs.wallpaperPath ?: return null
-            val file = File(path)
-            if (!file.exists()) return null
+        private fun obtainBackdrop(prefs: Prefs): Backdrop? {
+            val token = backdropToken(prefs)
+            backdrop?.let { if (token == backdropToken) return it }
 
-            val token = "$path:${file.lastModified()}:${surfaceWidth}x$surfaceHeight"
-            background?.let { if (token == backgroundToken) return it }
-
-            releaseBackground()
-            val loaded = decodeCentreCropped(file) ?: return null
-            background = loaded
-            backgroundToken = token
-            return loaded
+            releaseBackdrop()
+            val built = buildBackdrop(prefs) ?: return null
+            backdrop = built
+            backdropToken = token
+            return built
         }
 
-        private fun decodeCentreCropped(file: File): Bitmap? = try {
+        private fun backdropToken(prefs: Prefs): String {
+            if (prefs.backgroundKind != Prefs.BACKGROUND_IMAGE) {
+                return "preset:${prefs.backgroundPreset}:${surfaceWidth}x$surfaceHeight"
+            }
+            val path = prefs.wallpaperPath ?: return "none"
+            val stamp = File(path).let { if (it.exists()) it.lastModified() else 0L }
+            return "image:$path:$stamp:${prefs.backgroundAnimate}:${surfaceWidth}x$surfaceHeight"
+        }
+
+        private fun buildBackdrop(prefs: Prefs): Backdrop? {
+            if (prefs.backgroundKind != Prefs.BACKGROUND_IMAGE) {
+                return Backdrop.Gradient(prefs.backgroundPreset)
+            }
+
+            val path = prefs.wallpaperPath ?: return Backdrop.Gradient(prefs.backgroundPreset)
+            val file = File(path)
+            if (!file.exists()) return Backdrop.Gradient(prefs.backgroundPreset)
+
+            return decodeAnimated(file, prefs.backgroundAnimate)
+                ?: decodeStill(file)
+                ?: Backdrop.Gradient(prefs.backgroundPreset)
+        }
+
+        /**
+         * Decodes a GIF or animated WebP.
+         *
+         * Returns null when the file is not animated, or on API levels without
+         * [ImageDecoder], so the caller can fall back to a still decode.
+         */
+        private fun decodeAnimated(file: File, animate: Boolean): Backdrop? {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+            return try {
+                val source = ImageDecoder.createSource(file)
+                val drawable = ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
+                    // Decode straight to the surface size: a full-resolution
+                    // animated image would hold every frame at source size.
+                    val scale = max(
+                        surfaceWidth / info.size.width.toFloat(),
+                        surfaceHeight / info.size.height.toFloat(),
+                    ).coerceAtMost(1f)
+                    if (scale < 1f) {
+                        decoder.setTargetSize(
+                            (info.size.width * scale).roundToInt().coerceAtLeast(1),
+                            (info.size.height * scale).roundToInt().coerceAtLeast(1),
+                        )
+                    }
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                }
+                (drawable as? AnimatedImageDrawable)?.let { Backdrop.Animated(it, animate) }
+            } catch (e: Exception) {
+                Log.w(TAG, "could not decode animated background", e)
+                null
+            }
+        }
+
+        private fun decodeStill(file: File): Backdrop? = try {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, bounds)
 
@@ -204,8 +275,8 @@ class ShibuWallpaperService : WallpaperService() {
                     )
                     inPreferredConfig = Bitmap.Config.ARGB_8888
                 }
-                val decoded = BitmapFactory.decodeFile(file.absolutePath, options)
-                decoded?.let { centreCrop(it, surfaceWidth, surfaceHeight) }
+                BitmapFactory.decodeFile(file.absolutePath, options)
+                    ?.let { Backdrop.Still(centreCrop(it, surfaceWidth, surfaceHeight)) }
             }
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "background image too large to decode", e)
@@ -229,7 +300,7 @@ class ShibuWallpaperService : WallpaperService() {
                 source,
                 Rect(0, 0, source.width, source.height),
                 RectF(dx, dy, dx + scaledWidth, dy + scaledHeight),
-                bitmapPaint,
+                Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG),
             )
             if (source != output) source.recycle()
             return output
@@ -244,24 +315,27 @@ class ShibuWallpaperService : WallpaperService() {
             return sample
         }
 
-        private fun releaseBackground() {
-            background?.recycle()
-            background = null
-            backgroundToken = null
+        private fun releaseBackdrop() {
+            backdrop?.release()
+            backdrop = null
+            backdropToken = null
         }
     }
 
     companion object {
         private const val TAG = "ShibuWallpaper"
 
-        /** Set on [RotationEngine.ACTION_CARD_CHANGED] when the photo changed. */
+        /** ~20fps. Fast enough to read as motion, slow enough to be polite. */
+        private const val FRAME_INTERVAL_MS = 50L
+
+        /** Set on [RotationEngine.ACTION_CARD_CHANGED] when the backdrop changed. */
         const val EXTRA_RELOAD_BACKGROUND = "reload_background"
 
         /** Intent that opens the system live wallpaper picker on Shibu. */
         fun pickerIntent(context: Context): Intent =
             Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).putExtra(
                 WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
-                android.content.ComponentName(context, ShibuWallpaperService::class.java),
+                ComponentName(context, ShibuWallpaperService::class.java),
             )
     }
 }

@@ -40,11 +40,26 @@ class ShibuBridge {
 
   Future<void> refreshSurfaces() => _invoke<bool>('refreshSurfaces');
 
-  /// Copies the chosen photo into app storage; returns its new path.
-  Future<String?> setBackgroundImage(String path) =>
-      _invoke<String>('setBackgroundImage', {'path': path});
+  /// Opens the system picker and copies the chosen file into app storage.
+  ///
+  /// Returns null when the user backs out. The bytes are copied verbatim by the
+  /// native side, so an animated GIF stays animated.
+  Future<({String path, bool animated})?> pickBackground() async {
+    final result = await _invoke<Map<dynamic, dynamic>>('pickBackground');
+    if (result == null) return null;
+    return (
+      path: result['path'] as String,
+      animated: result['animated'] as bool? ?? false,
+    );
+  }
 
-  Future<void> clearBackgroundImage() => _invoke<bool>('clearBackgroundImage');
+  Future<void> clearBackground() => _invoke<bool>('clearBackground');
+
+  /// Name of the live wallpaper currently running, when it is not Shibu.
+  ///
+  /// Null means either Shibu is active or the wallpaper is a plain image.
+  Future<String?> activeWallpaperName() =>
+      _invoke<String>('activeWallpaperName');
 
   /// Opens the system live wallpaper picker on Shibu.
   Future<bool> openWallpaperPicker() async =>

@@ -2,7 +2,7 @@ name: shibu
 description: Learn Japanese kanji from your lock screen and home screen.
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.9.0
@@ -11,9 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  # Lets the user choose the wallpaper backdrop. The file is handed to the
-  # native side by path and copied into app storage from there.
-  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

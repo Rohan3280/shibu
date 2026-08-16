@@ -6,9 +6,9 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.util.Log
+import com.shibu.app.data.BackgroundPresets
 import com.shibu.app.data.KanjiStore
 import com.shibu.app.data.Prefs
 import com.shibu.app.rotation.RotationEngine
@@ -17,8 +17,6 @@ import com.shibu.app.wallpaper.ShibuWallpaperService
 import com.shibu.app.widget.ShibuWidgetProvider
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
-import java.io.FileOutputStream
 
 /**
  * The single bridge between the Flutter UI and the native surfaces.
@@ -31,6 +29,9 @@ import java.io.FileOutputStream
 class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHandler {
 
     private val context: Context get() = activity.applicationContext
+
+    /** Held while the system document picker is open. */
+    private var pendingPick: MethodChannel.Result? = null
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
@@ -57,14 +58,16 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                     RotationEngine.refresh(context)
                     result.success(true)
                 }
-                "setBackgroundImage" -> result.success(copyBackground(call.argument("path")))
-                "clearBackgroundImage" -> {
-                    Prefs(context).wallpaperPath = null
+                "pickBackground" -> pickBackground(result)
+                "clearBackground" -> {
+                    BackgroundStore.clear(context)
                     notifyBackgroundChanged()
                     result.success(true)
                 }
+                "backgroundPresets" -> result.success(presets())
                 "openWallpaperPicker" -> result.success(openWallpaperPicker())
                 "isWallpaperActive" -> result.success(isWallpaperActive())
+                "activeWallpaperName" -> result.success(activeWallpaperName())
                 "requestPinWidget" -> result.success(requestPinWidget())
                 "widgetCount" -> result.success(widgetCount())
                 else -> result.notImplemented()
@@ -97,6 +100,10 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             "offsetX" to p.offsetX.toDouble(),
             "offsetY" to p.offsetY.toDouble(),
             "shadow" to p.shadow,
+            "backgroundKind" to p.backgroundKind,
+            "backgroundPreset" to p.backgroundPreset,
+            "backgroundAnimate" to p.backgroundAnimate,
+            "backgroundIsAnimated" to BackgroundStore.isStoredAnimated(context),
             "wallpaperPath" to p.wallpaperPath,
             "wallpaperDim" to p.wallpaperDim.toDouble(),
             "wallpaperColor" to p.wallpaperColor,
@@ -109,6 +116,7 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
     private fun applySettings(call: MethodCall) {
         val p = Prefs(context)
         var deckChanged = false
+        var backdropChanged = false
 
         call.argument<List<Int>>("levels")?.let {
             val levels = it.toSet()
@@ -125,7 +133,7 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         }
         call.argument<List<Int>>("learned")?.let { p.learned = it.toSet() }
         call.argument<String>("rotationMode")?.let { p.rotationMode = it }
-        call.argument<Int>("intervalMinutes")?.let { p.intervalMinutes = it }
+        call.intArg("intervalMinutes")?.let { p.intervalMinutes = it }
         call.argument<Boolean>("shuffle")?.let {
             if (it != p.shuffle) deckChanged = true
             p.shuffle = it
@@ -133,16 +141,28 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         call.argument<Boolean>("showReading")?.let { p.showReading = it }
         call.argument<Boolean>("showMeaning")?.let { p.showMeaning = it }
         call.argument<Boolean>("showExample")?.let { p.showExample = it }
-        call.argument<Int>("textColor")?.let { p.textColor = it }
-        call.argument<Double>("fontScale")?.let { p.fontScale = it.toFloat() }
+        call.intArg("textColor")?.let { p.textColor = it }
+        call.floatArg("fontScale")?.let { p.fontScale = it }
         call.argument<String>("align")?.let { p.align = it }
-        call.argument<Double>("offsetX")?.let { p.offsetX = it.toFloat() }
-        call.argument<Double>("offsetY")?.let { p.offsetY = it.toFloat() }
+        call.floatArg("offsetX")?.let { p.offsetX = it }
+        call.floatArg("offsetY")?.let { p.offsetY = it }
         call.argument<Boolean>("shadow")?.let { p.shadow = it }
-        call.argument<Double>("wallpaperDim")?.let { p.wallpaperDim = it.toFloat() }
-        call.argument<Int>("wallpaperColor")?.let { p.wallpaperColor = it }
+        call.argument<String>("backgroundKind")?.let {
+            if (it != p.backgroundKind) backdropChanged = true
+            p.backgroundKind = it
+        }
+        call.argument<String>("backgroundPreset")?.let {
+            if (it != p.backgroundPreset) backdropChanged = true
+            p.backgroundPreset = it
+        }
+        call.argument<Boolean>("backgroundAnimate")?.let {
+            if (it != p.backgroundAnimate) backdropChanged = true
+            p.backgroundAnimate = it
+        }
+        call.floatArg("wallpaperDim")?.let { p.wallpaperDim = it }
+        call.intArg("wallpaperColor")?.let { p.wallpaperColor = it }
         call.argument<String>("widgetBackground")?.let { p.widgetBackground = it }
-        call.argument<Int>("widgetTextColor")?.let { p.widgetTextColor = it }
+        call.intArg("widgetTextColor")?.let { p.widgetTextColor = it }
         call.argument<Boolean>("onboarded")?.let { p.onboarded = it }
 
         // Changing the deck invalidates the current position: index 40 of an
@@ -153,31 +173,69 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         }
 
         Scheduler.ensureScheduled(context)
-        RotationEngine.refresh(context)
+        if (backdropChanged) {
+            notifyBackgroundChanged()
+        } else {
+            RotationEngine.refresh(context)
+        }
+    }
+
+    private fun presets(): List<Map<String, Any>> = BackgroundPresets.all.map {
+        mapOf("id" to it.id, "label" to it.label, "colors" to it.colors.toList())
     }
 
     // Background image ------------------------------------------------------
 
     /**
-     * Stores the chosen photo inside app storage.
+     * Opens the system document picker.
      *
-     * Copying rather than holding a content URI means the wallpaper engine
-     * needs no storage permission and keeps working if the user later moves or
-     * deletes the original from their gallery.
+     * ACTION_OPEN_DOCUMENT rather than a gallery plugin, because the bytes have
+     * to reach [BackgroundStore] untouched — anything that re-encodes would
+     * turn an animated GIF into a still frame.
      */
-    private fun copyBackground(sourcePath: String?): String? {
-        val source = sourcePath?.let(::File) ?: return null
-        if (!source.exists()) return null
+    private fun pickBackground(result: MethodChannel.Result) {
+        pendingPick?.success(null)
+        pendingPick = result
 
-        val dir = File(context.filesDir, "wallpaper").apply { mkdirs() }
-        val target = File(dir, "background.jpg")
-        source.inputStream().use { input ->
-            FileOutputStream(target).use { output -> input.copyTo(output) }
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("image/*")
+            .putExtra(
+                Intent.EXTRA_MIME_TYPES,
+                arrayOf("image/jpeg", "image/png", "image/gif", "image/webp", "image/heif"),
+            )
+
+        try {
+            activity.startActivityForResult(intent, REQUEST_PICK_BACKGROUND)
+        } catch (e: Exception) {
+            Log.e(TAG, "no document picker available", e)
+            pendingPick = null
+            result.error("no_picker", "No app on this device can pick an image.", null)
+        }
+    }
+
+    /** Called by MainActivity. Returns true when the result was consumed. */
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode != REQUEST_PICK_BACKGROUND) return false
+
+        val result = pendingPick ?: return true
+        pendingPick = null
+
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            // The user backed out; not an error.
+            result.success(null)
+            return true
         }
 
-        Prefs(context).wallpaperPath = target.absolutePath
-        notifyBackgroundChanged()
-        return target.absolutePath
+        val stored = BackgroundStore.save(context, uri)
+        if (stored == null) {
+            result.error("copy_failed", "Could not read that image.", null)
+        } else {
+            notifyBackgroundChanged()
+            result.success(mapOf("path" to stored.path, "animated" to stored.animated))
+        }
+        return true
     }
 
     private fun notifyBackgroundChanged() {
@@ -207,6 +265,17 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
     }.getOrDefault(false)
 
     /**
+     * Label of whatever live wallpaper is currently running, or null for a
+     * plain image wallpaper. Used to explain *why* Shibu is not on screen when
+     * another app owns the wallpaper.
+     */
+    private fun activeWallpaperName(): String? = runCatching {
+        val info = WallpaperManager.getInstance(context).wallpaperInfo ?: return null
+        if (info.packageName == context.packageName) return null
+        info.loadLabel(context.packageManager)?.toString()
+    }.getOrNull()
+
+    /**
      * Asks the launcher to place the widget. Only supported on Android 8+ and
      * only by launchers that opt in, so the UI treats false as "add it
      * yourself from the widget tray".
@@ -223,8 +292,23 @@ class ShibuChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         .getAppWidgetIds(ComponentName(context, ShibuWidgetProvider::class.java))
         .size
 
+    /**
+     * Reads a numeric argument without caring how the codec sized it.
+     *
+     * The standard message codec promotes any Dart int above 2^31 to Int64, so
+     * an opaque ARGB colour arrives as a Long while a small integer arrives as
+     * an Int. Asking for a concrete type threw ClassCastException and aborted
+     * the whole write, which silently discarded every setting on the call.
+     */
+    private fun MethodCall.intArg(name: String): Int? =
+        (argument<Any>(name) as? Number)?.toLong()?.toInt()
+
+    private fun MethodCall.floatArg(name: String): Float? =
+        (argument<Any>(name) as? Number)?.toFloat()
+
     companion object {
         const val CHANNEL = "com.shibu.app/bridge"
         private const val TAG = "ShibuChannel"
+        private const val REQUEST_PICK_BACKGROUND = 4801
     }
 }

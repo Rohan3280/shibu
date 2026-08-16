@@ -117,7 +117,29 @@ class Prefs(context: Context) {
 
     // Wallpaper -------------------------------------------------------------
 
-    /** Absolute path of the background image copied into app storage. */
+    /** [BACKGROUND_PRESET] or [BACKGROUND_IMAGE]. */
+    var backgroundKind: String
+        get() = sp.getString(KEY_BACKGROUND_KIND, BACKGROUND_PRESET) ?: BACKGROUND_PRESET
+        set(value) = sp.edit().putString(KEY_BACKGROUND_KIND, value).apply()
+
+    /** Id of the built-in gradient; see [BackgroundPresets]. */
+    var backgroundPreset: String
+        get() = sp.getString(KEY_BACKGROUND_PRESET, BackgroundPresets.DEFAULT_ID)
+            ?: BackgroundPresets.DEFAULT_ID
+        set(value) = sp.edit().putString(KEY_BACKGROUND_PRESET, value).apply()
+
+    /**
+     * Whether an animated background actually animates.
+     *
+     * A moving wallpaper redraws continuously whenever the screen is on, which
+     * costs real battery, so this stays user-controlled. Turning it off shows
+     * the first frame as a still image.
+     */
+    var backgroundAnimate: Boolean
+        get() = sp.getBoolean(KEY_BACKGROUND_ANIMATE, true)
+        set(value) = sp.edit().putBoolean(KEY_BACKGROUND_ANIMATE, value).apply()
+
+    /** Absolute path of the background image or GIF copied into app storage. */
     var wallpaperPath: String?
         get() = sp.getString(KEY_WALLPAPER_PATH, null)
         set(value) = sp.edit().putString(KEY_WALLPAPER_PATH, value).apply()
@@ -179,6 +201,9 @@ class Prefs(context: Context) {
         const val ALIGN_CENTER = "center"
         const val ALIGN_RIGHT = "right"
 
+        const val BACKGROUND_PRESET = "preset"
+        const val BACKGROUND_IMAGE = "image"
+
         const val WIDGET_BG_TRANSPARENT = "transparent"
         const val WIDGET_BG_SCRIM = "scrim"
         const val WIDGET_BG_SOLID = "solid"
@@ -206,6 +231,9 @@ class Prefs(context: Context) {
         private const val KEY_OFFSET_Y = "offset_y"
         private const val KEY_OFFSET_X = "offset_x"
         private const val KEY_SHADOW = "shadow"
+        private const val KEY_BACKGROUND_KIND = "background_kind"
+        private const val KEY_BACKGROUND_PRESET = "background_preset"
+        private const val KEY_BACKGROUND_ANIMATE = "background_animate"
         private const val KEY_WALLPAPER_PATH = "wallpaper_path"
         private const val KEY_WALLPAPER_DIM = "wallpaper_dim"
         private const val KEY_WALLPAPER_COLOR = "wallpaper_color"

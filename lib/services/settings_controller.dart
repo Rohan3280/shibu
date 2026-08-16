@@ -23,6 +23,7 @@ class SettingsController extends ChangeNotifier {
   ShibuSettings _settings = ShibuSettings.defaults;
   int? _currentKanjiId;
   bool _wallpaperActive = false;
+  String? _otherWallpaperName;
   int _widgetCount = 0;
   bool _loading = true;
   Object? _error;
@@ -34,6 +35,13 @@ class SettingsController extends ChangeNotifier {
 
   /// True when Shibu is the device's active live wallpaper.
   bool get wallpaperActive => _wallpaperActive;
+
+  /// The live wallpaper currently holding the slot, when it is not Shibu.
+  ///
+  /// Another wallpaper app owning the slot is the single most common reason
+  /// for "my changes do not show up", so the UI names it rather than just
+  /// saying Shibu is inactive.
+  String? get otherWallpaperName => _otherWallpaperName;
 
   /// How many Shibu widgets are on the home screen.
   int get widgetCount => _widgetCount;
@@ -99,6 +107,9 @@ class SettingsController extends ChangeNotifier {
   Future<void> _syncStatus() async {
     _currentKanjiId = await _bridge.currentKanjiId();
     _wallpaperActive = await _bridge.isWallpaperActive();
+    _otherWallpaperName = _wallpaperActive
+        ? null
+        : await _bridge.activeWallpaperName();
     _widgetCount = await _bridge.widgetCount();
   }
 
@@ -163,17 +174,27 @@ class SettingsController extends ChangeNotifier {
     return pinned;
   }
 
-  Future<void> setBackgroundImage(String path) async {
-    final stored = await _bridge.setBackgroundImage(path);
-    if (stored != null) {
-      _settings = _settings.copyWith(wallpaperPath: stored);
-      notifyListeners();
-    }
+  /// Returns false when the user backed out of the picker.
+  Future<bool> pickBackground() async {
+    final stored = await _bridge.pickBackground();
+    if (stored == null) return false;
+
+    _settings = _settings.copyWith(
+      wallpaperPath: stored.path,
+      backgroundKind: BackgroundKind.image,
+      backgroundIsAnimated: stored.animated,
+    );
+    notifyListeners();
+    return true;
   }
 
-  Future<void> clearBackgroundImage() async {
-    await _bridge.clearBackgroundImage();
-    _settings = _settings.copyWith(clearWallpaperPath: true);
+  Future<void> clearBackground() async {
+    await _bridge.clearBackground();
+    _settings = _settings.copyWith(
+      clearWallpaperPath: true,
+      backgroundKind: BackgroundKind.preset,
+      backgroundIsAnimated: false,
+    );
     notifyListeners();
   }
 

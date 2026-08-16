@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../main.dart';
+import '../models/background_presets.dart';
 import '../models/settings.dart';
 import '../widgets/lock_screen_preview.dart';
 import '../widgets/section.dart';
@@ -32,6 +32,7 @@ class StyleScreen extends StatelessWidget {
       child: CustomScrollView(
         slivers: [
           const SliverToBoxAdapter(child: _Title()),
+          const SliverToBoxAdapter(child: WallpaperInactiveBanner()),
           SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(
@@ -49,23 +50,62 @@ class StyleScreen extends StatelessWidget {
                 Section(
                   title: 'Backdrop',
                   footnote:
-                      'The photo is only used by the Shibu wallpaper. It is copied '
-                      'into the app so it keeps working if you move the original.',
+                      'GIFs and animated WebP work too. The file is copied into '
+                      'the app so it keeps working if you move the original.',
                   children: [
-                    SettingRow(
-                      label: 'Background photo',
-                      description: settings.wallpaperPath == null
-                          ? 'Using the built-in gradient'
-                          : 'Custom photo selected',
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _pickPhoto(context),
+                    _BackgroundKindRow(
+                      selected: settings.backgroundKind,
+                      onSelected: (kind) async {
+                        if (kind == BackgroundKind.image &&
+                            settings.wallpaperPath == null) {
+                          await ShibuScope.read(context).pickBackground();
+                          return;
+                        }
+                        await controller.edit(
+                          (s) => s.copyWith(backgroundKind: kind),
+                        );
+                      },
                     ),
-                    if (settings.wallpaperPath != null)
+                    if (settings.backgroundKind == BackgroundKind.preset)
+                      _PresetRow(
+                        selected: settings.backgroundPreset,
+                        onSelected: (id) => controller.edit(
+                          (s) => s.copyWith(backgroundPreset: id),
+                        ),
+                      )
+                    else ...[
                       SettingRow(
-                        label: 'Remove photo',
-                        trailing: const Icon(Icons.close),
-                        onTap: controller.clearBackgroundImage,
+                        label: settings.wallpaperPath == null
+                            ? 'Choose an image or GIF'
+                            : 'Change image',
+                        description: settings.wallpaperPath == null
+                            ? null
+                            : settings.backgroundIsAnimated
+                            ? 'Animated file selected'
+                            : 'Still image selected',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _pickBackground(context),
                       ),
+                      if (settings.backgroundIsAnimated)
+                        SettingRow(
+                          label: 'Animate',
+                          description:
+                              'A moving wallpaper redraws whenever your screen '
+                              'is on, which uses more battery',
+                          trailing: Switch(
+                            value: settings.backgroundAnimate,
+                            onChanged: (v) => controller.edit(
+                              (s) => s.copyWith(backgroundAnimate: v),
+                            ),
+                          ),
+                        ),
+                      if (settings.wallpaperPath != null)
+                        SettingRow(
+                          label: 'Remove image',
+                          trailing: const Icon(Icons.close),
+                          onTap: controller.clearBackground,
+                        ),
+                    ],
                     _SliderRow(
                       label: 'Darken',
                       value: settings.wallpaperDim,
@@ -199,22 +239,14 @@ class StyleScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _pickPhoto(BuildContext context) async {
+  Future<void> _pickBackground(BuildContext context) async {
     final controller = ShibuScope.read(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final picked = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        // Big enough for any phone screen without storing a 12 MP original.
-        maxWidth: 2160,
-        maxHeight: 3840,
-        imageQuality: 92,
-      );
-      if (picked == null) return;
-      await controller.setBackgroundImage(picked.path);
+      await controller.pickBackground();
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not open that photo: $e')),
+        SnackBar(content: Text('Could not open that image: $e')),
       );
     }
   }
@@ -402,4 +434,160 @@ class _WidgetBackgroundRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Picks between a built-in gradient and the user's own file.
+class _BackgroundKindRow extends StatelessWidget {
+  const _BackgroundKindRow({required this.selected, required this.onSelected});
+
+  final BackgroundKind selected;
+  final ValueChanged<BackgroundKind> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Background',
+          style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        SegmentedButton<BackgroundKind>(
+          segments: [
+            for (final kind in BackgroundKind.values)
+              ButtonSegment(value: kind, label: Text(kind.label)),
+          ],
+          selected: {selected},
+          onSelectionChanged: (s) => onSelected(s.first),
+          showSelectedIcon: false,
+        ),
+      ],
+    ),
+  );
+}
+
+/// The built-in gradients, shown as swatches rather than names.
+class _PresetRow extends StatelessWidget {
+  const _PresetRow({required this.selected, required this.onSelected});
+
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          BackgroundPresets.byId(selected).label,
+          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final preset in BackgroundPresets.all)
+              GestureDetector(
+                onTap: () => onSelected(preset.id),
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: preset.gradient,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: preset.id == selected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white.withValues(alpha: 0.14),
+                      width: preset.id == selected ? 3 : 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// Explains why nothing on the lock screen is changing.
+///
+/// Every control on this screen styles the Shibu wallpaper. If some other app
+/// owns the wallpaper slot, the settings save correctly and simply have nothing
+/// to draw onto, which reads as the app being broken. Naming the culprit is the
+/// difference between a two-second fix and a bug report.
+class WallpaperInactiveBanner extends StatelessWidget {
+  const WallpaperInactiveBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ShibuScope.of(context);
+    if (controller.wallpaperActive) return const SizedBox.shrink();
+
+    final other = controller.otherWallpaperName;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        decoration: BoxDecoration(
+          color: scheme.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    other == null
+                        ? 'Shibu is not your wallpaper yet'
+                        : '$other is your wallpaper',
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              other == null
+                  ? 'These settings style the Shibu wallpaper. Until you set it, '
+                        'your lock screen will not change.'
+                  : 'These settings style the Shibu wallpaper, so nothing will '
+                        'change on your lock screen while $other holds the '
+                        'wallpaper slot.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: controller.openWallpaperPicker,
+                icon: const Icon(Icons.wallpaper_outlined, size: 18),
+                label: const Text('Set Shibu as wallpaper'),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

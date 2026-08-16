@@ -57,7 +57,9 @@ that is what you see behind your lock screen.
 - **Lock screen and home screen**, from one setting.
 - **Rotation you choose** — a new kanji on every unlock, or on a timer from 15
   minutes to once a day.
-- **Your own photo** as the backdrop, with adjustable dimming.
+- **Your own photo, GIF or animated WebP** as the backdrop, plus seven built-in
+  gradients, with adjustable dimming. Animation is capped and pauses whenever
+  the wallpaper is not on screen, and can be switched off entirely.
 - **Full control of the card**: text colour, size, alignment, position, drop
   shadow, and which of the three lines to show.
 - **Decks and progress** — pick your levels, favourite the ones you want to see

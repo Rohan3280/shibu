@@ -50,6 +50,23 @@ enum CardAlign {
   );
 }
 
+/// Where the wallpaper backdrop comes from.
+enum BackgroundKind {
+  preset('preset', 'Built-in'),
+  image('image', 'My photo or GIF');
+
+  const BackgroundKind(this.wireName, this.label);
+
+  final String wireName;
+  final String label;
+
+  static BackgroundKind fromWire(String? value) =>
+      BackgroundKind.values.firstWhere(
+        (k) => k.wireName == value,
+        orElse: () => BackgroundKind.preset,
+      );
+}
+
 /// How the home screen widget paints behind the card.
 enum WidgetBackground {
   transparent('transparent', 'None'),
@@ -107,6 +124,10 @@ class ShibuSettings {
     required this.offsetX,
     required this.offsetY,
     required this.shadow,
+    required this.backgroundKind,
+    required this.backgroundPreset,
+    required this.backgroundAnimate,
+    required this.backgroundIsAnimated,
     required this.wallpaperPath,
     required this.wallpaperDim,
     required this.wallpaperColor,
@@ -136,6 +157,19 @@ class ShibuSettings {
   final double offsetY;
   final bool shadow;
 
+  final BackgroundKind backgroundKind;
+
+  /// Id of the chosen built-in gradient; see [BackgroundPresets].
+  final String backgroundPreset;
+
+  /// Whether an animated backdrop is allowed to move. Off shows frame one.
+  final bool backgroundAnimate;
+
+  /// Whether the stored file actually has more than one frame. Reported by the
+  /// native side, which sniffs the header; the UI hides the animate toggle
+  /// when there is nothing to animate.
+  final bool backgroundIsAnimated;
+
   final String? wallpaperPath;
   final double wallpaperDim;
   final Color wallpaperColor;
@@ -163,6 +197,10 @@ class ShibuSettings {
     offsetX: 0.06,
     offsetY: 0.32,
     shadow: true,
+    backgroundKind: BackgroundKind.preset,
+    backgroundPreset: 'midnight',
+    backgroundAnimate: true,
+    backgroundIsAnimated: false,
     wallpaperPath: null,
     wallpaperDim: 0.15,
     wallpaperColor: Color(0xFF16202C),
@@ -196,6 +234,10 @@ class ShibuSettings {
       offsetX: dbl('offsetX', 0.06),
       offsetY: dbl('offsetY', 0.32),
       shadow: map['shadow'] as bool? ?? true,
+      backgroundKind: BackgroundKind.fromWire(map['backgroundKind'] as String?),
+      backgroundPreset: map['backgroundPreset'] as String? ?? 'midnight',
+      backgroundAnimate: map['backgroundAnimate'] as bool? ?? true,
+      backgroundIsAnimated: map['backgroundIsAnimated'] as bool? ?? false,
       wallpaperPath: map['wallpaperPath'] as String?,
       wallpaperDim: dbl('wallpaperDim', 0.15),
       wallpaperColor: Color(
@@ -223,16 +265,22 @@ class ShibuSettings {
     'showReading': showReading,
     'showMeaning': showMeaning,
     'showExample': showExample,
-    'textColor': textColor.toARGB32(),
+    // Colours must be sent as *signed* 32-bit. toARGB32() returns values above
+    // 2^31 for any opaque colour, which the standard codec promotes to Int64,
+    // and the Kotlin side reads these as Int. See the round-trip test.
+    'textColor': textColor.toARGB32().toSigned(32),
     'fontScale': fontScale,
     'align': align.wireName,
     'offsetX': offsetX,
     'offsetY': offsetY,
     'shadow': shadow,
+    'backgroundKind': backgroundKind.wireName,
+    'backgroundPreset': backgroundPreset,
+    'backgroundAnimate': backgroundAnimate,
     'wallpaperDim': wallpaperDim,
-    'wallpaperColor': wallpaperColor.toARGB32(),
+    'wallpaperColor': wallpaperColor.toARGB32().toSigned(32),
     'widgetBackground': widgetBackground.wireName,
-    'widgetTextColor': widgetTextColor.toARGB32(),
+    'widgetTextColor': widgetTextColor.toARGB32().toSigned(32),
     'onboarded': onboarded,
   };
 
@@ -254,6 +302,10 @@ class ShibuSettings {
     double? offsetX,
     double? offsetY,
     bool? shadow,
+    BackgroundKind? backgroundKind,
+    String? backgroundPreset,
+    bool? backgroundAnimate,
+    bool? backgroundIsAnimated,
     String? wallpaperPath,
     bool clearWallpaperPath = false,
     double? wallpaperDim,
@@ -279,6 +331,10 @@ class ShibuSettings {
     offsetX: offsetX ?? this.offsetX,
     offsetY: offsetY ?? this.offsetY,
     shadow: shadow ?? this.shadow,
+    backgroundKind: backgroundKind ?? this.backgroundKind,
+    backgroundPreset: backgroundPreset ?? this.backgroundPreset,
+    backgroundAnimate: backgroundAnimate ?? this.backgroundAnimate,
+    backgroundIsAnimated: backgroundIsAnimated ?? this.backgroundIsAnimated,
     wallpaperPath: clearWallpaperPath
         ? null
         : (wallpaperPath ?? this.wallpaperPath),

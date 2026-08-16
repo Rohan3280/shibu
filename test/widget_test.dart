@@ -33,6 +33,8 @@ Future<void> _pump(WidgetTester tester, ShibuSettings settings) {
 }
 
 void main() {
+  _channelCodecTests();
+
   group('KanjiCard', () {
     testWidgets('shows character, reading, meaning and example', (
       tester,
@@ -123,6 +125,48 @@ void main() {
       expect(
         withPhoto.copyWith(clearWallpaperPath: true).wallpaperPath,
         isNull,
+      );
+    });
+  });
+}
+
+/// The platform channel uses the standard message codec, which promotes any
+/// Dart int above 2^31 to Int64. The Kotlin side reads these values as Int, so
+/// anything that does not fit in a signed 32-bit int silently aborts the whole
+/// write. Opaque ARGB colours are exactly that case.
+void _channelCodecTests() {
+  group('channel payload', () {
+    test('every integer fits in a signed 32-bit int', () {
+      const min = -2147483648;
+      const max = 2147483647;
+
+      for (final settings in [
+        ShibuSettings.defaults,
+        ShibuSettings.defaults.copyWith(
+          textColor: const Color(0xFFFFFFFF),
+          widgetTextColor: const Color(0xFF000000),
+          wallpaperColor: const Color(0xFF16202C),
+        ),
+      ]) {
+        settings.toMap().forEach((key, value) {
+          if (value is int) {
+            expect(
+              value,
+              inInclusiveRange(min, max),
+              reason: '"$key" is $value, which the codec would send as Int64',
+            );
+          }
+        });
+      }
+    });
+
+    test('colours survive the signed round trip', () {
+      const white = Color(0xFFFFFFFF);
+      final sent = ShibuSettings.defaults.copyWith(textColor: white).toMap();
+      expect(sent['textColor'], -1);
+      expect(
+        ShibuSettings.fromMap(sent).textColor.toARGB32(),
+        white.toARGB32(),
       );
     });
   });
