@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widget frame. The card itself arrives as a bitmap rendered by
+  CardRenderer, so this layout only supplies the rounded background, the
+  padding, and an empty state for the rare case where the deck cannot be read.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_scrim"
+    android:padding="14dp">
+
+    <ImageView
+        android:id="@+id/widget_card_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/widget_card_description" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/widget_empty"
+        android:textColor="#FFFFFFFF"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+</FrameLayout>

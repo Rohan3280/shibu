@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shibu</string>
+    <string name="widget_description">A kanji a day on your home screen.</string>
+    <string name="widget_card_description">Current kanji card</string>
+    <string name="widget_empty">Open Shibu to choose a deck</string>
+    <string name="wallpaper_description">Shows the kanji you are learning on your lock screen and home screen.</string>
+</resources>

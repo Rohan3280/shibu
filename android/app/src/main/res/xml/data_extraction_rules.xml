@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ equivalent of backup_rules.xml. Settings transfer; the copied
+  background photo does not.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="shibu_settings.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="shibu_settings.xml" />
+    </device-transfer>
+</data-extraction-rules>

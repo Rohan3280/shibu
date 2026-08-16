@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default widget background: a soft dark scrim so light card text stays
+     readable over any wallpaper. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#99101820" />
+    <corners android:radius="24dp" />
+</shape>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only the settings file is backed up. The copied background photo lives under
+  files/wallpaper and is deliberately left out: it is large, and it is trivially
+  re-picked on a new device.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="shibu_settings.xml" />
+</full-backup-content>

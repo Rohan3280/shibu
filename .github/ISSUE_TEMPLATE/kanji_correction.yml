@@ -1,0 +1,39 @@
+name: Kanji data correction
+description: A reading, meaning or example word is wrong
+labels: [data]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The deck in `assets/data/kanji.json` is hand-curated, so mistakes are
+        entirely possible. Corrections are the most useful contribution there is.
+
+  - type: input
+    id: character
+    attributes:
+      label: Which kanji?
+      placeholder: "駅"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: field
+    attributes:
+      label: Which field is wrong?
+      options:
+        - Reading (romaji or kana)
+        - Meaning
+        - Example word or its meaning
+        - On'yomi / kun'yomi
+        - JLPT level
+        - Stroke count
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: What should it say?
+      description: The current value and the correct one, with a source if you have one.
+    validations:
+      required: true

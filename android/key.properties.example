@@ -1,0 +1,13 @@
+# Copy to android/key.properties and fill in to sign a release build.
+#
+# Without this file the release build falls back to the debug signing key, so a
+# fresh clone still produces an installable APK. See CONTRIBUTING.md.
+#
+# Generate a keystore with:
+#   keytool -genkey -v -keystore android/app/upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+
+storeFile=app/upload-keystore.jks
+storePassword=
+keyAlias=upload
+keyPassword=

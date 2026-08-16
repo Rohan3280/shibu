@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in Shibu is not working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two behaviours are expected rather than bugs, and are explained in the README:
+
+        - **"Every unlock" does nothing without the Shibu wallpaper.** Android does not
+          deliver `ACTION_USER_PRESENT` to manifest receivers, so the wallpaper engine
+          becoming visible is the only signal Shibu can use.
+        - **A timed rotation can be up to 15 minutes late.** WorkManager will not run a
+          periodic job more often than that.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - Lock screen / wallpaper
+        - Home screen widget
+        - The app itself
+        - More than one of these
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set rotation to …
+        2. Lock the phone
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: "Pixel 7, Android 15"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Shibu version
+      placeholder: "1.0.0"
+    validations:
+      required: true

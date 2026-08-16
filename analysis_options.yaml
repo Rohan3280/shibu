@@ -1,0 +1,30 @@
+# Static analysis configuration. Run with `flutter analyze`; CI treats any
+# finding as a failure.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # A missing await in the settings flow means a change silently fails to
+    # reach the wallpaper, which is invisible until you lock your phone.
+    unawaited_futures: warning
+    # Keep the public surface documented — the Dart and Kotlin halves of this
+    # app are mirrors of each other, and the comments are what keep them so.
+    todo: info
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_empty_else
+    - avoid_relative_lib_imports
+    - avoid_unused_constructor_parameters
+    - cancel_subscriptions
+    - close_sinks
+    - directives_ordering
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_locals
+    - prefer_single_quotes
+    - sort_child_properties_last
+    - unnecessary_await_in_return
+    - unnecessary_parenthesis
+    - use_super_parameters
