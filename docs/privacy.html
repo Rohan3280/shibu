@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shibu — Privacy Policy</title>
+<meta name="description" content="Privacy policy for Shibu, an Android app that shows Japanese kanji on your lock screen. Shibu collects nothing and has no internet permission.">
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 48px 20px 96px;
+    background: #0E1220; color: #E8EAF2;
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  header img { width: 56px; height: 56px; border-radius: 13px; }
+  h1 { font-size: 30px; margin: 0; letter-spacing: -.4px; }
+  .updated { color: #8D93A8; font-size: 14px; margin: 4px 0 40px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; }
+  p, li { color: #C6CBDA; }
+  a { color: #E87BA4; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #232840; vertical-align: top; }
+  th { color: #9BA2BA; font-weight: 600; }
+  code { background: #1A1F33; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+  .lede { background: #161B2E; border: 1px solid #232840; border-radius: 14px; padding: 18px 20px; }
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid #232840; color: #767C92; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="../assets/icon/icon.png" alt="Shibu icon">
+    <h1>Privacy Policy</h1>
+  </header>
+  <p class="updated">Shibu for Android &middot; last updated 20 August 2026</p>
+
+  <p class="lede">Shibu collects nothing, sends nothing, and cannot reach the
+  internet. The app declares no <code>INTERNET</code> permission in its
+  manifest, so this is enforced by Android rather than promised by us.</p>
+
+  <h2>What is stored, and where</h2>
+  <p>Everything stays in the app&rsquo;s private storage on your device.</p>
+  <table>
+    <tr><th>What</th><th>Where</th><th>Why</th></tr>
+    <tr>
+      <td>Your settings &mdash; levels, rotation, colours, position</td>
+      <td><code>SharedPreferences</code></td>
+      <td>So the wallpaper and widget know what to draw</td>
+    </tr>
+    <tr>
+      <td>Favourites and kanji marked learned</td>
+      <td><code>SharedPreferences</code></td>
+      <td>Your progress</td>
+    </tr>
+    <tr>
+      <td>A copy of the background image or GIF you choose</td>
+      <td>App-private files directory</td>
+      <td>So the wallpaper can draw it without needing storage permission each
+          time, and so it keeps working if you move or delete the original</td>
+    </tr>
+  </table>
+  <p>No account, no sign-in, no identifier, no analytics, no crash reporting,
+  no advertising, no third-party SDKs.</p>
+
+  <h2>Permissions</h2>
+  <table>
+    <tr><th>Permission</th><th>Why it is requested</th></tr>
+    <tr>
+      <td><code>RECEIVE_BOOT_COMPLETED</code></td>
+      <td>Re-arms the rotation schedule after you restart your phone. Without
+          it, the card would stop changing until you next opened the app.</td>
+    </tr>
+    <tr>
+      <td><code>BIND_WALLPAPER</code></td>
+      <td>Declared on the wallpaper service. This is a permission Android
+          requires the <em>system</em> to hold in order to bind to Shibu, not a
+          permission Shibu holds over you.</td>
+    </tr>
+  </table>
+  <p>Choosing a backdrop uses the system document picker, which hands Shibu the
+  single file you selected. Shibu never requests broad storage access.</p>
+
+  <h2>Children</h2>
+  <p>Shibu is suitable for all ages. It collects no personal information from
+  anyone, including children, because it collects no personal information at
+  all.</p>
+
+  <h2>Backups</h2>
+  <p>If you have Android backup enabled, your settings file may be included in
+  your Google account backup, under Google&rsquo;s terms. The copied background
+  file is explicitly excluded.</p>
+
+  <h2>Removing your data</h2>
+  <p>Uninstalling Shibu deletes everything above. There is nothing held
+  anywhere else, because there is nowhere else.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the updated version will be published at this same
+  address and the date above will change with it.</p>
+
+  <h2>Contact</h2>
+  <p>Open an issue at
+  <a href="https://github.com/Rohan3280/shibu/issues">github.com/Rohan3280/shibu/issues</a>.</p>
+
+  <footer>
+    Shibu is free and open source under the MIT licence &mdash;
+    <a href="https://github.com/Rohan3280/shibu">source code</a>.
+  </footer>
+</main>
+</body>
+</html>

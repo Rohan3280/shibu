@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shibu — Kanji on your lock screen</title>
+<meta name="description" content="Shibu shows a Japanese kanji on your Android lock screen: the character, its reading, its meaning and an example word. Free, open source, entirely offline.">
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 64px 20px 96px;
+    background: #0E1220; color: #E8EAF2;
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; }
+  .hero { display: flex; align-items: center; gap: 22px; margin-bottom: 12px; }
+  .hero img { width: 92px; height: 92px; border-radius: 21px; }
+  h1 { font-size: 40px; margin: 0; letter-spacing: -1px; }
+  .tag { color: #9BA2BA; font-size: 18px; margin: 6px 0 0; }
+  .card {
+    background: #161B2E; border: 1px solid #232840; border-radius: 16px;
+    padding: 20px 22px; margin: 32px 0; font-size: 15px; color: #C6CBDA;
+  }
+  .sample { font-size: 19px; color: #E8EAF2; margin-top: 0; }
+  .sample b { font-size: 34px; margin-right: 12px; vertical-align: -4px; }
+  a.btn {
+    display: inline-block; background: #E87BA4; color: #3A0E20;
+    text-decoration: none; font-weight: 700; padding: 13px 22px;
+    border-radius: 13px; margin: 4px 10px 4px 0;
+  }
+  a.btn.ghost { background: transparent; color: #E87BA4; border: 1px solid #3A2A3A; }
+  .shots { display: flex; gap: 12px; overflow-x: auto; margin: 36px 0; padding-bottom: 8px; }
+  .shots img { width: 200px; border-radius: 14px; border: 1px solid #232840; }
+  h2 { font-size: 20px; margin: 40px 0 10px; }
+  p, li { color: #C6CBDA; }
+  a { color: #E87BA4; }
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid #232840; color: #767C92; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="../assets/icon/icon.png" alt="Shibu icon">
+    <div>
+      <h1>Shibu</h1>
+      <p class="tag">Kanji on your lock screen.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="sample"><b>駅</b> eki&middot;えき &mdash; station &mdash; 駅前&middot;in front of station</p>
+    <p style="margin-bottom:0">A new kanji every time you wake your phone. No app
+    to open, no streak to keep.</p>
+  </div>
+
+  <p>
+    <a class="btn" href="https://github.com/Rohan3280/shibu/releases/latest">Download the APK</a>
+    <a class="btn ghost" href="https://github.com/Rohan3280/shibu">Source on GitHub</a>
+  </p>
+
+  <div class="shots">
+    <img src="screenshots/01-today.png" alt="The Today screen">
+    <img src="screenshots/02-browse.png" alt="Browsing the kanji deck">
+    <img src="screenshots/03-style.png" alt="Styling the card">
+    <img src="screenshots/08-wallpaper.png" alt="The live wallpaper drawing a card">
+  </div>
+
+  <h2>How it reaches the lock screen</h2>
+  <p>Android phones have no lock screen widget API, so Shibu draws onto your
+  wallpaper instead. Android paints the same wallpaper behind both the lock
+  screen and the home screen, so one live wallpaper covers both. There is also
+  an ordinary home screen widget if you would rather keep your own wallpaper.</p>
+
+  <h2>Entirely offline</h2>
+  <p>Shibu declares no internet permission, so it cannot phone home even by
+  accident. All 419 kanji ship inside the app. See the
+  <a href="privacy.html">privacy policy</a>.</p>
+
+  <footer>
+    Free and open source under the MIT licence.
+    <a href="privacy.html">Privacy policy</a>
+  </footer>
+</main>
+</body>
+</html>

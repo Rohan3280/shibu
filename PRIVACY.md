@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Shibu** — last updated 16 August 2026.
+**Shibu** — last updated 20 August 2026.
 
 ## The short version
 
@@ -16,7 +16,7 @@ Everything stays in Shibu's private app storage on your device.
 | --- | --- | --- |
 | Your settings — levels, rotation, colours, position | `SharedPreferences` (`shibu_settings`) | So the wallpaper and widget know what to draw |
 | Favourites and kanji marked learned | `SharedPreferences` (`shibu_settings`) | Your progress |
-| A copy of the background photo you choose | App-private files directory | So the wallpaper can draw it without needing storage permission each time, and so it keeps working if you move or delete the original |
+| A copy of the background image or GIF you choose | App-private files directory | So the wallpaper can draw it without needing storage permission each time, and so it keeps working if you move or delete the original |
 
 No account, no identifier, no analytics, no crash reporting, no advertising.
 
@@ -27,8 +27,8 @@ No account, no identifier, no analytics, no crash reporting, no advertising.
 | `RECEIVE_BOOT_COMPLETED` | Re-arms the rotation schedule after you restart your phone. Without it, the card would stop changing until you next opened the app. |
 | `BIND_WALLPAPER` | Declared on the wallpaper service. This is a permission Android requires the *system* to hold in order to bind to Shibu, not a permission Shibu holds over you. |
 
-Choosing a background photo uses the system photo picker, which hands Shibu a
-single image you selected. Shibu never requests broad storage access.
+Choosing a backdrop uses the system document picker, which hands Shibu the
+single file you selected. Shibu never requests broad storage access.
 
 ## Backups
 
