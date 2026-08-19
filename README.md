@@ -206,8 +206,11 @@ widget tree, for when no phone is to hand.
 ## Privacy
 
 Shibu has **no internet permission**. It stores your settings in
-`SharedPreferences` and, if you pick one, a copy of your chosen background photo
-in its own private storage. Nothing leaves the device. See [PRIVACY.md](PRIVACY.md).
+`SharedPreferences` and, if you pick one, a copy of your chosen backdrop in its
+own private storage. Nothing leaves the device.
+
+Full policy: <https://rohan3280.github.io/shibu/privacy.html>
+(source: [PRIVACY.md](PRIVACY.md))
 
 ## Contributing
 
