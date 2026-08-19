@@ -1,0 +1,65 @@
+Shibu puts a kanji on your lock screen, so you pick up a few more every day without ever opening an app.
+
+Every card shows the character, how it is read in romaji and kana, what it means, and a real word that uses it:
+
+駅 — eki・えき — station — 駅前・in front of station
+
+Unlock your phone, glance, carry on. That is the whole idea.
+
+
+How It Works
+
+Android phones have no lock screen widget API, so Shibu draws onto your wallpaper instead. Android paints the same wallpaper behind both your lock screen and your home screen, so one live wallpaper covers both at once. If you would rather keep your current wallpaper, there is an ordinary home screen widget too.
+
+Worth knowing before you start: the lock screen card only appears once you set Shibu as your live wallpaper. The app walks you through it on first run, and tells you plainly if another app is holding your wallpaper.
+
+
+What Is Included
+
+• 419 kanji across JLPT N5, N4 and N3
+• Romaji and kana readings, English meaning, on'yomi and kun'yomi
+• An example compound word for every kanji, with its own reading and meaning
+• All of it bundled in the app, so nothing is ever downloaded
+
+
+Your Own Pace
+
+• A new kanji every time you wake your phone
+• Or on a timer — every 15 minutes, hourly, every few hours, or once a day
+• Study only the JLPT levels you choose
+• Favourite the ones you want to see more often
+• Mark off the ones you already know
+
+
+Make It Look Right
+
+• Seven built-in backdrops, or bring your own photo, GIF or animated WebP
+• Move the card so it sits clear of your clock and your notifications
+• Text colour, text size, alignment and drop shadow
+• Show or hide the reading, the meaning or the example word
+• Adjustable dimming, so light text stays readable over a busy photo
+• Animated backdrops pause whenever your screen is off, and can be turned off entirely
+
+
+Browse And Search
+
+Look up anything in the deck by character, reading or meaning. Open a kanji to see its full readings and example word, or pin it to your lock screen right away.
+
+
+Privacy
+
+Shibu has no internet permission. Not a promise not to send anything — the app simply cannot reach the network, because the permission is not in it at all. No account, no sign-in, no analytics, no ads, no tracking. Your settings and your progress never leave your phone.
+
+
+Open Source
+
+Shibu is free and open source under the MIT licence. You can read every line, build it yourself, or send a correction to the kanji data:
+github.com/Rohan3280/shibu
+
+
+Good To Know
+
+• Requires Android 7.0 or newer
+• "A new kanji every time you wake your phone" needs the Shibu wallpaper to be active, because becoming visible is how the app knows your screen came on
+• A timed rotation can arrive up to 15 minutes late, because Android will not wake an app more often than that
+• Shibu is for recognising kanji; it does not teach stroke order or handwriting

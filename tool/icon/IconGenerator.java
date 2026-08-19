@@ -86,6 +86,12 @@ public final class IconGenerator {
         ImageIO.write(foregroundMark(), "png",
                 new File(outDir, "icon_foreground.png"));
 
+        // Google Play wants exactly 512x512, square and opaque: it applies its
+        // own corner mask, so a pre-rounded icon with transparency shows dark
+        // wedges in the corners once masked.
+        ImageIO.write(flatten(withMark(upscale(scene, 512))), "png",
+                new File(outDir, "play-icon-512.png"));
+
         System.out.println("wrote icon.png, icon_background.png, icon_foreground.png to " + outDir);
     }
 
@@ -329,9 +335,10 @@ public final class IconGenerator {
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setFont(japaneseFont(112f));
+        float k = src.getWidth() / 1024f;
+        g.setFont(japaneseFont(112f * k));
         g.setColor(new Color(0x11, 0x14, 0x1A));
-        g.drawString(MARK, 150, 200);
+        g.drawString(MARK, 150 * k, 200 * k);
         g.dispose();
         return src;
     }
@@ -356,6 +363,18 @@ public final class IconGenerator {
         g.drawString(mark, x + 6, y + 8);
         g.setColor(Color.WHITE);
         g.drawString(mark, x, y);
+        g.dispose();
+        return out;
+    }
+
+    /** Drops the alpha channel by compositing onto opaque black. */
+    private static BufferedImage flatten(BufferedImage src) {
+        BufferedImage out = new BufferedImage(
+                src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, src.getWidth(), src.getHeight());
+        g.drawImage(src, 0, 0, null);
         g.dispose();
         return out;
     }
